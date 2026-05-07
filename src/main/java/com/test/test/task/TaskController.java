@@ -1,5 +1,6 @@
 package com.test.test.task;
 
+import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -39,7 +40,7 @@ public class TaskController {
 
     @PostMapping
     public ResponseEntity<Task> createTask(
-            @RequestBody Task taskToCreate
+            @RequestBody @Valid Task taskToCreate
     ){
         log.info("called createTask");
         return ResponseEntity.status(HttpStatus.CREATED)
@@ -50,7 +51,7 @@ public class TaskController {
     @PutMapping("/{id}")
     public ResponseEntity<Task> updateTask(
             @PathVariable("id") Long id,
-            @RequestBody Task updatedTask
+            @RequestBody @Valid Task updatedTask
     ){
         log.info("called updateTask");
         return ResponseEntity.status(HttpStatus.OK)
@@ -63,15 +64,9 @@ public class TaskController {
     ){
         log.info("called deleteTask");
 
-        try {
             taskService.deleteTask(id);
             return ResponseEntity.ok()
                     .build();
-        }
-        catch (NoSuchElementException e){
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .build();
-        }
     }
 
     @PatchMapping("/{id}/undo")

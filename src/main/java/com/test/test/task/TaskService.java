@@ -4,6 +4,7 @@ import jakarta.persistence.EntityNotFoundException;
 import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -48,22 +49,18 @@ public class TaskService {
     public Task createTask(
             Task taskToCreate
     ) {
-        if(taskToCreate.id()!=null){
-            throw new IllegalArgumentException("id should be empty");
-        }
         if(taskToCreate.status()!=null){
             throw new IllegalArgumentException("status should be empty");
         }
-
-
         var entityToSave = new TaskEntity(
                 null,
                 taskToCreate.creatorId(),
                 taskToCreate.assignedUserId(),
                 TaskStatus.CREATED,
-                taskToCreate.createDateTime(),
+                LocalDateTime.now(),
                 taskToCreate.deadlineDate(),
-                taskToCreate.priority()
+                taskToCreate.priority(),
+                null
         );
 
         var savedEntity = repository.save(entityToSave);
@@ -86,9 +83,10 @@ public class TaskService {
                 updatedTask.creatorId(),
                 updatedTask.assignedUserId(),
                 taskEntity.getStatus(),
-                updatedTask.createDateTime(),
+                taskEntity.getCreateDateTime(),
                 updatedTask.deadlineDate(),
-                updatedTask.priority()
+                updatedTask.priority(),
+                null
         );
         var newTaskToUpdate = repository.save(newUpdatedTask);
 
@@ -149,6 +147,7 @@ public class TaskService {
         }
 
         taskEntity.setStatus(TaskStatus.DONE);
+        taskEntity.setDoneDateTime(LocalDateTime.now());
         repository.save(taskEntity);
 
         return toDomainTask(taskEntity);
@@ -164,7 +163,8 @@ public class TaskService {
                 taskEntity.getStatus(),
                 taskEntity.getCreateDateTime(),
                 taskEntity.getDeadlineDate(),
-                taskEntity.getPriority()
+                taskEntity.getPriority(),
+                taskEntity.getDoneDateTime()
         );
     }
 
