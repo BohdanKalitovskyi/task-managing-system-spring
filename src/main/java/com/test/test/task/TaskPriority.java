@@ -1,4 +1,4 @@
-package com.test.test;
+package com.test.test.task;
 
 public enum TaskPriority {
     LOW,

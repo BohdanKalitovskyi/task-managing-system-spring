@@ -1,4 +1,4 @@
-package com.test.test;
+package com.test.test.task;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -81,5 +81,23 @@ public class TaskController {
         log.info("called undoTask");
         return ResponseEntity.status(HttpStatus.OK)
                 .body(taskService.undoTask(id));
+    }
+
+    @PatchMapping("/{id}/start")
+    public ResponseEntity<Task> startTask(
+            @PathVariable("id") Long id
+    ){
+        log.info("called startTask");
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(taskService.startTask(id));
+    }
+
+    @PatchMapping("/{id}/finish")
+    public ResponseEntity<Task> finishTask(
+            @PathVariable("id") Long id
+    ){
+        log.info("called finishTask");
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(taskService.finishTask(id));
     }
 }
