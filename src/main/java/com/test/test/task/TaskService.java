@@ -2,6 +2,7 @@ package com.test.test.task;
 
 import jakarta.persistence.EntityNotFoundException;
 import org.jspecify.annotations.Nullable;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -15,11 +16,14 @@ public class TaskService {
 
     private final TaskRepository repository;
 
+    private final TaskMapper mapper;
+
     private final Map<Long, Task> taskMap;
     private final AtomicLong idCounter;
 
-    public TaskService(TaskRepository repository) {
+    public TaskService(TaskRepository repository, TaskMapper mapper) {
         this.repository = repository;
+        this.mapper = mapper;
         taskMap = new HashMap<>();
         idCounter = new AtomicLong();
     }
@@ -33,14 +37,31 @@ public class TaskService {
                         "Entity not found "+id
                 ));
 
-        return toDomainTask(taskEntity);
+        return mapper.toDomain(taskEntity);
     }
 
-    public List<Task> findAllTasks() {
-        List<TaskEntity> allEntities = repository.findAll();
+    public List<Task> searchAllByFilter(
+            TaskSearchFiler filer
+    ) {
+        int pageSize = filer.pageSize() != null
+                ? filer.pageSize() : 10;
+        int pageNumber = filer.pageNumber() != null
+                ? filer.pageNumber() : 0;
+
+        var pageable = Pageable
+                .ofSize(pageSize)
+                .withPage(pageNumber);
+
+        List<TaskEntity> allEntities = repository.searchAllByFilter(
+                filer.creatorId(),
+                filer.assignedUserId(),
+                filer.status(),
+                filer.priority(),
+                pageable
+        );
 
         List<Task> taskList = allEntities.stream().map(
-                this::toDomainTask)
+                mapper::toDomain)
                 .toList();
 
         return taskList;
@@ -52,19 +73,14 @@ public class TaskService {
         if(taskToCreate.status()!=null){
             throw new IllegalArgumentException("status should be empty");
         }
-        var entityToSave = new TaskEntity(
-                null,
-                taskToCreate.creatorId(),
-                taskToCreate.assignedUserId(),
-                TaskStatus.CREATED,
-                LocalDateTime.now(),
-                taskToCreate.deadlineDate(),
-                taskToCreate.priority(),
-                null
-        );
+
+        var entityToSave = mapper.toEntity(taskToCreate);
+        entityToSave.setStatus(TaskStatus.CREATED);
+        entityToSave.setCreateDateTime(LocalDateTime.now());
+        entityToSave.setDoneDateTime(null);
 
         var savedEntity = repository.save(entityToSave);
-        return toDomainTask(savedEntity);
+        return mapper.toDomain(savedEntity);
     }
 
 
@@ -78,19 +94,15 @@ public class TaskService {
         }
 
 
-        var newUpdatedTask = new TaskEntity(
-                taskEntity.getId(),
-                updatedTask.creatorId(),
-                updatedTask.assignedUserId(),
-                taskEntity.getStatus(),
-                taskEntity.getCreateDateTime(),
-                updatedTask.deadlineDate(),
-                updatedTask.priority(),
-                null
-        );
+        var newUpdatedTask = mapper.toEntity(updatedTask);
+        newUpdatedTask.setId(taskEntity.getId());
+        newUpdatedTask.setStatus(taskEntity.getStatus());
+        newUpdatedTask.setCreateDateTime(taskEntity.getCreateDateTime());
+        newUpdatedTask.setDoneDateTime(null);
+
         var newTaskToUpdate = repository.save(newUpdatedTask);
 
-        return toDomainTask(newTaskToUpdate);
+        return mapper.toDomain(newTaskToUpdate);
     }
 
     public void deleteTask(Long id) {
@@ -113,7 +125,7 @@ public class TaskService {
         taskEntity.setStatus(TaskStatus.IN_PROGRESS);
         repository.save(taskEntity);
 
-        return toDomainTask(taskEntity);
+        return mapper.toDomain(taskEntity);
     }
 
     public Task startTask(Long id) {
@@ -134,7 +146,7 @@ public class TaskService {
         taskEntity.setStatus(TaskStatus.IN_PROGRESS);
         repository.save(taskEntity);
 
-        return toDomainTask(taskEntity);
+        return mapper.toDomain(taskEntity);
     }
 
     public  Task finishTask(Long id) {
@@ -150,23 +162,10 @@ public class TaskService {
         taskEntity.setDoneDateTime(LocalDateTime.now());
         repository.save(taskEntity);
 
-        return toDomainTask(taskEntity);
+        return mapper.toDomain(taskEntity);
     }
 
-    private Task toDomainTask(
-            TaskEntity taskEntity
-    ){
-        return new Task(
-                taskEntity.getId(),
-                taskEntity.getCreatorId(),
-                taskEntity.getAssignedUserId(),
-                taskEntity.getStatus(),
-                taskEntity.getCreateDateTime(),
-                taskEntity.getDeadlineDate(),
-                taskEntity.getPriority(),
-                taskEntity.getDoneDateTime()
-        );
-    }
+
 
 
 }
